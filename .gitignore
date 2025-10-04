@@ -1,0 +1,17 @@
+
+hello/
+.env
+chroma_db/
+*.log
+
+.streamlit/
+
+
+*.sqlite3
+data/pdfs/*.pdf
+data/txts/*.txt
+!data/pdfs/dummy.pdf
+!data/txts/dummy.txt
+
+uploads/
+
