@@ -9,12 +9,12 @@ An AI-powered chatbot that leverages **Retrieval-Augmented Generation (RAG)** to
 This project allows you to upload a collection of documents (research papers, books, notes, etc.) and interact with them conversationally through an intelligent assistant.  
 
 ## 🖥️ Demo  
-- Lets Try Out https://letstart.streamlit.app/
+- Lets Try Out Live App -- https://letstart.streamlit.app/
 
 Here’s how the chatbot looks in action:  
 
 ### Homepage  
-![Chatbot UI](Images/ui2.png) 
+![Chatbot UI](images/image.png) 
 
 
 ---
@@ -34,7 +34,7 @@ Here’s how the chatbot looks in action:
 ## 📂 Project Structure  
 
 ```bash
-rag-multidoc-chatbot/
+RAG_Q&A_Chatbot/
 │── chroma_db/                # auto-generated vector database
 │── data/
 │   ├── pdfs/                 # place your PDF documents here
@@ -52,7 +52,8 @@ rag-multidoc-chatbot/
 │── update_db.py              # automatic detect the new data and stored in chroma db
 │── rebuild_db.py
 │── requirements.txt
-│── .env
+│── .env or .streamlit/secrets.toml
+
 
 
 ```
@@ -62,8 +63,8 @@ rag-multidoc-chatbot/
 ## How To Use 
 
 - Clone the repository
--     git clone https://github.com/Deepakkumar5570/rag-multidoc-chatbot.git
-      cd rag-multidoc-chatbot
+-     git clone https://github.com/Deepakkumar5570/RAG_Q&A_Chatbot.git
+      cd RAG_Q&A_Chatbot
   
  ##  Create & activate a virtual environment
        python -m venv venv
@@ -112,9 +113,8 @@ You can extend by dropping more PDFs or TXTs into:
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
-## 👤 Author
-
-Deepak Kumar
+## 
+👤 Author: Deepak Kumar
 ---
   Here is my Contact Information 👉    
 -  My contact Email →  `dk0778671@gmail.com`
