@@ -57,6 +57,18 @@ RAG_Q&A_Chatbot/
 
 
 ```
+## Technical Stack
+
+| Layer             | Tools                                                 |
+| ----------------- | ----------------------------------------------------- |
+| **Frontend/UI**   | Streamlit                                             |
+| **LLM**           | Google Gemini (via `langchain_google_genai`)          |
+| **Embeddings**    | `GoogleGenerativeAIEmbeddings` (`text-embedding-004`) |
+| **Vector DB**     | Chroma                                                |
+| **Orchestration** | LangChain                                             |
+| **Memory**        | ConversationBufferMemory                              |
+| **Persistence**   | Local disk (`chroma_db/`, `uploads/`, `data/`)        |
+
 
 
 
