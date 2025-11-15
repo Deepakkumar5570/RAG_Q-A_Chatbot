@@ -1,11 +1,30 @@
-langchain
-langchain-community
-langchain-google-genai
+# langchain
+# langchain-community
+# langchain-text-splitters
+
+
+# langchain-google-genai
+# google-generativeai
+# chromadb
+# pypdf
+# python-dotenv
+# streamlit
+# fastapi
+# uvicorn
+# python-multipart
+
+
+
+langchain==0.2.11
+langchain-core==0.2.26
+langchain-community==0.2.6
+langchain-google-genai==1.0.5
+langchain-text-splitters
 google-generativeai
 chromadb
-pypdf
 python-dotenv
 streamlit
+pypdf
 fastapi
 uvicorn
 python-multipart
