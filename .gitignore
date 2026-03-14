@@ -3,7 +3,7 @@ hello/
 .env
 chroma_db/
 *.log
-
+venv/
 .streamlit/
 
 

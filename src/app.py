@@ -1,114 +1,132 @@
-
-# src/app.py
 import sys
 import os
-from pathlib import Path
+import streamlit as st
 
-
-# Add parent directory to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import streamlit as st
 from src.data_loader import load_documents
 from src.preprocess import split_documents
 from src.embed_store import create_vectorstore, load_vectorstore
-from src.chatbot import create_chatbot
+from src.chatbot import create_chatbot, create_llm
 from src.upload_handler import save_upload, handle_uploaded_file
 from src.config import VECTOR_DB_DIR
 
-# Streamlit page setup
 st.set_page_config(page_title="📚 MultiDoc Chatbot", layout="wide")
-st.title("🤖 Multi-Document Chatbot with Gemini")
+st.title("🤖 MultiDoc Chatbot (Gemini style)")
 
-# Ensure directories exist
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(VECTOR_DB_DIR, exist_ok=True)
 
-# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
-# Function to process uploaded files and update vector store
+def vectorstore_has_items(vs):
+    try:
+        docs = vs.similarity_search("test", k=1)
+        if docs:
+            return True
+    except Exception:
+        pass
+    try:
+        if hasattr(vs, "_collection"):
+            return vs._collection.count() > 0
+    except Exception:
+        pass
+    return False
+
 def process_uploaded_files(uploaded_files):
-    new_docs = []
     for f in uploaded_files:
         file_path = save_upload(f, f.name)
-        handle_uploaded_file(file_path)
-        st.success(f"✅ {f.name} added to knowledge base")
-        # Load documents from newly uploaded file
-        new_docs.extend(load_documents())
-    if new_docs:
-        chunks = split_documents(new_docs)
-        chunks = [doc for doc in chunks if doc.page_content.strip()]
-        if chunks:
-            st.session_state.vectorstore = create_vectorstore(chunks)
-            st.success("✅ Vector store updated with new documents")
+        ok = handle_uploaded_file(file_path)
+        if ok:
+            st.success(f"✅ {f.name} added") 
         else:
-            st.warning("⚠️ Uploaded documents were empty after cleaning")
+            st.warning(f"⚠️ {f.name} had no usable text")
+    try:
+        vs = load_vectorstore()
+        if vectorstore_has_items(vs):
+            st.session_state.vectorstore = vs
+        else:
+            st.session_state.vectorstore = None
+    except Exception as e:
+        st.error(f"Error reloading vectorstore: {e}")
 
-# Chat container
-chat_container = st.container()
-
-# File upload inside chat
-with chat_container:
+with st.sidebar.expander("📤 Upload docs", expanded=True):
     uploaded_files = st.file_uploader(
-        "📤 Upload PDFs/TXTs directly in chat",
-        type=["pdf", "txt"],
-        accept_multiple_files=True
+        "PDF/TXT files", type=["pdf", "txt"], accept_multiple_files=True
     )
     if uploaded_files:
         process_uploaded_files(uploaded_files)
 
-# Load or create vectorstore if not exists
 if not st.session_state.vectorstore:
     try:
-        if not os.path.exists(VECTOR_DB_DIR) or not os.listdir(VECTOR_DB_DIR):
-            with st.spinner("📥 Loading base documents..."):
+        if not os.listdir(VECTOR_DB_DIR):
+            with st.spinner("Loading base docs..."):
                 docs = load_documents()
                 chunks = split_documents(docs)
-                chunks = [doc for doc in chunks if doc.page_content.strip()]
+                chunks = [d for d in chunks if d.page_content.strip()]
                 if chunks:
-                    st.session_state.vectorstore = create_vectorstore(chunks)
+                    vs, embedded = create_vectorstore(chunks)
+                    if embedded > 0:
+                        st.session_state.vectorstore = vs
+                    else:
+                        st.warning("No chunks were embedded.")
                 else:
-                    st.warning("❌ No valid documents found to embed")
+                    st.info("No docs found. Upload one.")
         else:
-            st.session_state.vectorstore = load_vectorstore()
+            vs = load_vectorstore()
+            if vectorstore_has_items(vs):
+                st.session_state.vectorstore = vs
+            else:
+                st.session_state.vectorstore = None
     except Exception as e:
-        st.error(f"❌ Vector store creation failed: {e}")
+        st.error(f"Vector store error: {e}")
 
-# Initialize chatbot
-qa_chain = None
-if st.session_state.vectorstore:
-    qa_chain = create_chatbot(st.session_state.vectorstore)
+qa_chain = create_chatbot(st.session_state.vectorstore) if st.session_state.vectorstore else None
+llm_agent = create_llm() if not qa_chain else None
 
-# Display chat messages
+if st.button("Clear chat"):
+    st.session_state.messages = []
+
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Chat input
-if qa_chain:
-    if prompt := st.chat_input("💬 Ask something or upload more documents..."):
-        # Detect if user wants to upload via message (optional)
-        if prompt.lower().startswith("upload"):
-            st.info("Use the upload button above to add documents.")
-        else:
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+with st.form(key="chat_form", clear_on_submit=False):
+    query_text = st.text_input("💬 Ask something:", key="query_text")
+    submit = st.form_submit_button("Send")
 
-            with st.chat_message("assistant"):
-                try:
-                    response = qa_chain.invoke(prompt)
-                    response_text = response.get("answer") if isinstance(response, dict) else str(response)
-                except Exception as e:
-                    response_text = f"⚠️ Error: {e}"
+if submit and query_text:
+    st.session_state.messages.append({"role": "user", "content": query_text})
 
-                st.markdown(response_text)
-                st.session_state.messages.append({"role": "assistant", "content": response_text})
-else:
-    st.info("ℹ️ Chat will be available once documents are loaded or uploaded.")
+    with st.chat_message("assistant"):
+        with st.spinner("Generating..."):
+            response_text = ""
+            try:
+                if qa_chain:
+                    res = qa_chain.invoke(query_text)
+                    if isinstance(res, dict):
+                        response_text = res.get("answer", "")
+                        if not response_text and llm_agent:
+                            response_text = llm_agent(query_text)
+                    else:
+                        response_text = str(res)
+                elif llm_agent:
+                    response_text = llm_agent(query_text)
+                else:
+                    response_text = "⚠️ Chat backend not available."
+            except Exception as e:
+                if llm_agent:
+                    response_text = llm_agent(query_text)
+                else:
+                    response_text = f"Error: {e}"
+
+            if not response_text:
+                response_text = "⚠️ No answer could be generated. Please try again."
+
+        st.markdown(response_text)
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
