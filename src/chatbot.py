@@ -54,9 +54,7 @@ def create_llm():
             try:
                 model = genai.GenerativeModel(CHAT_MODEL)
                 response = model.generate_content(
-                    f"You are an assistant. Answer the user query clearly and concisely.\n\nUser: {prompt_text}",
-                    temperature=0.3,
-                    max_output_tokens=200
+                    f"You are an assistant. Answer the user query clearly and concisely.\n\nUser: {prompt_text}"
                 )
                 return getattr(response, 'text', str(response))
             except Exception as inner_e:
